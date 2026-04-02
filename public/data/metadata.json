@@ -1,0 +1,40 @@
+{
+  "generated": "2026-04-02",
+  "total_features": 67,
+  "spans": {
+    "count": 31,
+    "total_km_approx": 32470.5,
+    "by_status": {
+      "deployed": 31
+    },
+    "by_capacity_class": {
+      "high": 17,
+      "medium": 14
+    },
+    "by_source": {
+      "AfTerFibre": 12,
+      "RNP": 19
+    },
+    "by_region": {
+      "africa": 12,
+      "americas": 19
+    }
+  },
+  "nodes": {
+    "count": 36,
+    "by_type": {
+      "ixp": 12,
+      "landing-station": 8,
+      "data-center": 3,
+      "pop": 13
+    },
+    "by_region": {
+      "africa": 17,
+      "americas": 19
+    },
+    "by_source": {
+      "AfTerFibre": 17,
+      "RNP": 19
+    }
+  }
+}

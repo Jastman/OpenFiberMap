@@ -25,11 +25,21 @@ env/
 dist/
 *.whl
 
-# Large data files (tracked via Git LFS or external storage)
-public/data/*.geojson
-public/data/*.czml
+# Large data files pulled from live APIs at runtime (not committed)
+# OSM and PeeringDB bulk downloads can be hundreds of MB
 public/data/*.pmtiles
-!public/data/sample-*.geojson
+public/data/spans-osm-*.geojson
+public/data/nodes-osm-*.geojson
+public/data/nodes-peeringdb.geojson
+public/data/nodes-landing-stations.geojson
+public/data/spans-ofds-*.geojson
+public/data/nodes-ofds-*.geojson
+
+# Raw ETL cache (never committed)
+data/raw/
+
+# Seed-built + merged files are committed (small, reproducible offline)
+# They can be regenerated with: ./scripts/run_etl.sh --offline
 
 # OS
 .DS_Store
