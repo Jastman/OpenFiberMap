@@ -1,0 +1,98 @@
+name: Build & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger
+
+# Allow one deploy at a time; cancel in-progress on new push
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ── 1. ETL: regenerate data (offline/seed mode in CI) ──────────────────────
+  etl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Run ETL pipeline (offline — seed data + cached APIs)
+        run: bash scripts/run_etl.sh --offline --skip osm
+        # In production, remove --offline to fetch live PeeringDB + Submarine Cable Map data.
+        # Add a secret PEERINGDB_API_KEY and pass it via --api-key for higher rate limits.
+
+      - name: Validate sample output
+        run: python scripts/validate_schema.py public/data/spans-afterfibre-africa.geojson -v
+
+      - name: Upload data artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiber-data
+          path: public/data/
+          retention-days: 1
+
+  # ── 2. Build: Vite production build ───────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    needs: etl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Download ETL data artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fiber-data
+          path: public/data/
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Vite build
+        run: npm run build
+        env:
+          # Optional: set your Cesium ion token as a GitHub secret
+          VITE_CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_TOKEN }}
+          # Set base path for GitHub Pages: /OpenFiberMap/ or /
+          # If deploying to a custom domain, leave VITE_BASE_URL empty
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL || '' }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # ── 3. Deploy to GitHub Pages ──────────────────────────────────────────────
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

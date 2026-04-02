@@ -1,0 +1,51 @@
+name: Validate & Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "claude/**"]
+
+jobs:
+  schema-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps
+        run: pip install jsonschema requests python-dateutil
+
+      - name: Validate sample GeoJSON
+        run: python scripts/validate_schema.py data/samples/sample-africa.geojson -v
+
+      - name: Validate committed data files
+        run: |
+          for f in public/data/spans-*.geojson public/data/nodes-*.geojson; do
+            [ -f "$f" ] && python scripts/validate_schema.py "$f" -v || true
+          done
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Vite build
+        run: npm run build

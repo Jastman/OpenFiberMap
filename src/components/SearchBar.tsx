@@ -60,7 +60,7 @@ export default function SearchBar({ onSearch, onGeoJump }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-80 max-w-[90vw]"
+      className="w-full"
     >
       <div className="relative">
         {/* Search icon */}

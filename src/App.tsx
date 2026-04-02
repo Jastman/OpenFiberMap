@@ -1,28 +1,40 @@
 /**
- * App.tsx — Root component. Owns all state, wires together:
- *   CesiumViewer ← data + filter state
- *   Sidebar      ← layer/filter controls
- *   InfoPanel    ← selected feature details
- *   Toolbar      ← view mode controls
- *   SearchBar    ← search / geo-jump
- *   Legend       ← colour legend
+ * App.tsx — Root component. Owns all state and wires together:
+ *   CesiumViewer  ← data + filter state
+ *   Sidebar       ← layer/filter controls + About button
+ *   InfoPanel     ← selected feature details
+ *   Toolbar       ← view mode controls
+ *   SearchBar     ← search / geo-jump
+ *   Legend        ← colour legend
+ *   AboutModal    ← data sources + limitations
+ *   ShareButton   ← copy current view URL
+ *   TimelineSlider← year-range filter for planned builds
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import CesiumViewer, { type CesiumViewerHandle } from "@/components/CesiumViewer";
-import Sidebar    from "@/components/Sidebar";
-import InfoPanel  from "@/components/InfoPanel";
-import Toolbar    from "@/components/Toolbar";
-import SearchBar  from "@/components/SearchBar";
-import Legend     from "@/components/Legend";
-import { useFilters } from "@/hooks/useFilters";
+import Sidebar        from "@/components/Sidebar";
+import InfoPanel      from "@/components/InfoPanel";
+import Toolbar        from "@/components/Toolbar";
+import SearchBar      from "@/components/SearchBar";
+import Legend         from "@/components/Legend";
+import AboutModal     from "@/components/AboutModal";
+import ShareButton    from "@/components/ShareButton";
+import TimelineSlider, { type YearRange } from "@/components/TimelineSlider";
+import { useFilters }   from "@/hooks/useFilters";
+import { useShareUrl, decodeShareHash } from "@/hooks/useShareUrl";
+import { useMobile }    from "@/hooks/useMobile";
 import type { SelectedFeature, Region } from "@/types";
 
 // Read Cesium ion token from env (set VITE_CESIUM_ION_TOKEN= in .env.local)
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN as string | undefined;
 
+// Dataset year extent — update when adding newer planned-build data
+const TIMELINE_RANGE: YearRange = { min: 2000, max: 2030 };
+
 export default function App() {
   const viewerRef = useRef<CesiumViewerHandle>(null);
+  const isMobile  = useMobile();
 
   // ── Layer visibility ──────────────────────────────────────────────────────
   const [showSpans, setShowSpans] = useState(true);
@@ -35,12 +47,37 @@ export default function App() {
   } = useFilters();
 
   // ── View state ────────────────────────────────────────────────────────────
-  const [is3D, setIs3D]               = useState(true);
+  const [is3D,       setIs3D]       = useState(true);
   const [underground, setUnderground] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile); // collapsed on mobile by default
 
-  // ── Selected feature ──────────────────────────────────────────────────────
+  // ── Modal / overlay state ─────────────────────────────────────────────────
+  const [showAbout,    setShowAbout]    = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+  const [timelineValue, setTimelineValue] = useState<YearRange>(TIMELINE_RANGE);
+
+  // ── Share URL ─────────────────────────────────────────────────────────────
+  const getPosition = useCallback(() => undefined, []); // extend later with Cesium camera read
+  const { copyShareLink } = useShareUrl(filters, getPosition);
+
+  // ── Restore state from URL hash on first load ─────────────────────────────
+  useEffect(() => {
+    const { filters: hf, position } = decodeShareHash();
+    if (hf.region)        setRegion(hf.region as Region);
+    if (hf.operator)      setOperator(hf.operator);
+    if (hf.status)        setStatus(hf.status as Parameters<typeof setStatus>[0]);
+    if (hf.capacityClass) setCapacityClass(hf.capacityClass as Parameters<typeof setCapacityClass>[0]);
+    if (hf.searchQuery)   setSearchQuery(hf.searchQuery);
+    if (position) {
+      // Defer until viewer is mounted
+      setTimeout(() => {
+        viewerRef.current?.zoomToFeature(position.lon, position.lat);
+      }, 800);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Callbacks ─────────────────────────────────────────────────────────────
 
@@ -70,20 +107,27 @@ export default function App() {
 
   const handleCloseInfo = useCallback(() => setSelectedFeature(null), []);
 
+  // Close info panel when clicking backdrop on mobile
+  const handleGlobeClick = useCallback(() => {
+    if (isMobile && sidebarOpen) setSidebarOpen(false);
+  }, [isMobile, sidebarOpen]);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none">
 
       {/* Globe — full-screen base layer */}
-      <CesiumViewer
-        ref={viewerRef}
-        filters={filters}
-        showSpans={showSpans}
-        showNodes={showNodes}
-        onFeatureSelect={handleFeatureSelect}
-        cesiumIonToken={CESIUM_TOKEN}
-      />
+      <div onClick={handleGlobeClick} className="absolute inset-0">
+        <CesiumViewer
+          ref={viewerRef}
+          filters={filters}
+          showSpans={showSpans}
+          showNodes={showNodes}
+          onFeatureSelect={handleFeatureSelect}
+          cesiumIonToken={CESIUM_TOKEN}
+        />
+      </div>
 
       {/* Sidebar */}
       <Sidebar
@@ -97,20 +141,37 @@ export default function App() {
         onStatus={setStatus}
         onCapacity={setCapacityClass}
         onReset={reset}
+        onAbout={() => setShowAbout(true)}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
       />
 
-      {/* Search bar — top center */}
-      <SearchBar onSearch={setSearchQuery} onGeoJump={handleGeoJump} />
+      {/* Top bar: Search + Share */}
+      <div className={`absolute top-4 z-20 flex items-center gap-2 transition-all duration-300 ${
+        sidebarOpen ? "left-80" : "left-10"
+      } right-4`}>
+        <div className="flex-1 max-w-sm">
+          <SearchBar onSearch={setSearchQuery} onGeoJump={handleGeoJump} />
+        </div>
+        <div className="flex-shrink-0">
+          <ShareButton onCopy={copyShareLink} />
+        </div>
+      </div>
 
-      {/* Info panel — right side, slides in when feature selected */}
+      {/* Info panel — right side */}
       {selectedFeature && (
         <InfoPanel feature={selectedFeature} onClose={handleCloseInfo} />
       )}
 
-      {/* Legend — bottom right */}
-      <Legend />
+      {/* Legend — bottom right (above toolbar) */}
+      {!isMobile && <Legend />}
+
+      {/* Timeline slider — above toolbar */}
+      <TimelineSlider
+        range={TIMELINE_RANGE}
+        value={timelineValue}
+        onChange={setTimelineValue}
+      />
 
       {/* Toolbar — bottom center */}
       <Toolbar
@@ -121,34 +182,52 @@ export default function App() {
         onZoomRegion={handleZoomRegion}
       />
 
-      {/* Loading indicator */}
+      {/* About modal */}
+      {showAbout && (
+        <AboutModal onClose={() => setShowAbout(false)} />
+      )}
+
+      {/* Loading banner */}
       <LoadingBanner />
+
+      {/* Mobile touch hint */}
+      {isMobile && <MobileTouchHint />}
     </div>
   );
 }
 
-// ─── Transient loading banner (auto-hides after 4s) ───────────────────────────
+// ─── Loading banner (auto-hides) ─────────────────────────────────────────────
 
 function LoadingBanner() {
   const [visible, setVisible] = useState(true);
-
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 6000);
+    return () => clearTimeout(t);
+  }, []);
   if (!visible) return null;
-
   return (
-    <div
-      className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30
-                 bg-[rgba(13,17,28,0.95)] border border-white/10 rounded-xl
-                 px-4 py-2 text-xs text-slate-400 shadow-panel
-                 animate-fiber-pulse pointer-events-none"
-      onAnimationIteration={(e) => {
-        // After ~4 pulses, fade out
-        const el = e.currentTarget as HTMLElement;
-        const count = parseInt(el.dataset.count ?? "0") + 1;
-        el.dataset.count = String(count);
-        if (count >= 3) setVisible(false);
-      }}
-    >
+    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none
+                    bg-[rgba(13,17,28,0.90)] border border-white/10 rounded-xl
+                    px-4 py-2 text-xs text-slate-400 shadow-panel">
       Loading fiber network data…
+    </div>
+  );
+}
+
+// ─── Mobile touch hint (shown once) ──────────────────────────────────────────
+
+function MobileTouchHint() {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-30 pointer-events-none
+                    bg-[rgba(13,17,28,0.90)] border border-white/10 rounded-xl
+                    px-4 py-2 text-xs text-slate-400 shadow-panel text-center">
+      Pinch to zoom · Tap a route to inspect
     </div>
   );
 }

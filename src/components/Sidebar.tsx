@@ -13,6 +13,7 @@ interface Props {
   onShowNodes: (v: boolean) => void;
   onRegion: (v: Region | "all") => void;
   onOperator: (v: string) => void;
+  onAbout: () => void;
   onStatus: (v: FiberStatus | "all") => void;
   onCapacity: (v: CapacityClass | "all") => void;
   onReset: () => void;
@@ -96,7 +97,7 @@ export default function Sidebar({
   filters, showSpans, showNodes,
   onShowSpans, onShowNodes,
   onRegion, onOperator, onStatus, onCapacity,
-  onReset, isOpen, onToggle,
+  onReset, onAbout, isOpen, onToggle,
 }: Props) {
   const hasActiveFilters =
     filters.region !== "all" ||
@@ -238,15 +239,27 @@ export default function Sidebar({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-white/8 text-xs text-slate-600">
+          <div className="px-5 py-3 border-t border-white/8 flex items-center justify-between gap-2">
             <a
               href="https://github.com/jastman/OpenFiberMap"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-slate-400 transition-colors"
+              className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
             >
-              GitHub · MIT License · Contribute data
+              GitHub · MIT
             </a>
+            <button
+              onClick={onAbout}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors
+                         flex items-center gap-1 border border-white/8 hover:border-white/20
+                         px-2.5 py-1 rounded-lg"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              About &amp; Attribution
+            </button>
           </div>
         </div>
       </div>
