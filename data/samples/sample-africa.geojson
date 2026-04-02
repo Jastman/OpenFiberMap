@@ -1,0 +1,336 @@
+{
+  "type": "FeatureCollection",
+  "name": "OpenFiberMap-Sample-Africa",
+  "description": "Sample dataset demonstrating the OpenFiberMap GeoJSON schema. Approximate route geometries for illustration only — NOT authoritative.",
+  "version": "0.1.0",
+  "last_updated": "2026-04-02",
+  "license": "CC-BY-4.0",
+  "attribution": "OpenFiberMap contributors. Route approximations derived from AfTerFibre (NSRC, CC-BY) and OFDS-datasets (stevesong, various). See source_url per feature.",
+  "features": [
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [3.3792, 6.5244],
+          [3.9470, 7.3775],
+          [5.6295, 7.7341],
+          [7.4898, 9.0579],
+          [7.5400, 9.0700]
+        ]
+      },
+      "properties": {
+        "ofm_layer": "fiber-spans",
+        "span_id": "ng-mainone--001",
+        "network_id": "ng-mainone",
+        "name": "MainOne Lagos–Abuja Backbone",
+        "operator": "MainOne",
+        "operator_id": null,
+        "country_iso": "NG",
+        "countries": ["NG"],
+        "region": "africa",
+        "status": "deployed",
+        "burial_type": "underground",
+        "length_km": 730,
+        "capacity_gbps": 100,
+        "capacity_class": "high",
+        "fiber_pairs": 12,
+        "fiber_type": "G.652D",
+        "phase_id": null,
+        "phase_name": null,
+        "construction_start": "2015-01-01",
+        "ready_for_service": "2017-06-01",
+        "funders": [],
+        "contracts": [],
+        "source": "AfTerFibre",
+        "source_url": "https://afterfibre.nsrc.org",
+        "license": "CC-BY-4.0",
+        "attribution": "AfTerFibre / NSRC (CC-BY). Geometry is approximate.",
+        "last_updated": "2026-04-02",
+        "notes": "Approximate route. Actual alignment may differ. Capacity figure is design capacity.",
+        "ofds_span_id": null,
+        "osm_way_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [36.8219, -1.2921],
+          [36.8500, -1.0000],
+          [37.0000,  0.5000],
+          [37.6500,  3.1167],
+          [37.7523,  3.6822]
+        ]
+      },
+      "properties": {
+        "ofm_layer": "fiber-spans",
+        "span_id": "ke-safaricom--001",
+        "network_id": "ke-safaricom",
+        "name": "Safaricom Backbone Nairobi–Moyale",
+        "operator": "Safaricom",
+        "operator_id": null,
+        "country_iso": "KE",
+        "countries": ["KE"],
+        "region": "africa",
+        "status": "deployed",
+        "burial_type": "underground",
+        "length_km": 750,
+        "capacity_gbps": 40,
+        "capacity_class": "medium",
+        "fiber_pairs": 8,
+        "fiber_type": "G.652D",
+        "phase_id": null,
+        "phase_name": null,
+        "construction_start": "2013-01-01",
+        "ready_for_service": "2016-01-01",
+        "funders": [],
+        "contracts": [],
+        "source": "OFDS-datasets",
+        "source_url": "https://github.com/stevesong/OFDS-datasets",
+        "license": "CC-BY-4.0",
+        "attribution": "stevesong/OFDS-datasets (CC-BY). Geometry is approximate.",
+        "last_updated": "2026-04-02",
+        "notes": "Sample only. Geometry traced from public AfTerFibre map.",
+        "ofds_span_id": null,
+        "osm_way_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [28.0339, -26.2041],
+          [27.8561, -25.7449],
+          [27.3387, -24.6636],
+          [27.0000, -22.9580],
+          [25.9144, -24.6282],
+          [25.9050, -24.6540]
+        ]
+      },
+      "properties": {
+        "ofm_layer": "fiber-spans",
+        "span_id": "za-liquid--001",
+        "network_id": "za-liquid",
+        "name": "Liquid Intelligent Technologies Johannesburg–Gaborone",
+        "operator": "Liquid Intelligent Technologies",
+        "operator_id": null,
+        "country_iso": "XA",
+        "countries": ["ZA", "BW"],
+        "region": "africa",
+        "status": "deployed",
+        "burial_type": "underground",
+        "length_km": 360,
+        "capacity_gbps": 200,
+        "capacity_class": "high",
+        "fiber_pairs": 24,
+        "fiber_type": "G.652D",
+        "phase_id": null,
+        "phase_name": null,
+        "construction_start": "2010-01-01",
+        "ready_for_service": "2013-01-01",
+        "funders": [],
+        "contracts": [],
+        "source": "AfTerFibre",
+        "source_url": "https://afterfibre.nsrc.org",
+        "license": "CC-BY-4.0",
+        "attribution": "AfTerFibre / NSRC (CC-BY). Geometry is approximate.",
+        "last_updated": "2026-04-02",
+        "notes": "Cross-border span ZA→BW. Approximate alignment.",
+        "ofds_span_id": null,
+        "osm_way_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [2.3522, 6.3703],
+          [1.2255, 6.1350],
+          [0.0167, 5.5557],
+          [-0.1870, 5.5560]
+        ]
+      },
+      "properties": {
+        "ofm_layer": "fiber-spans",
+        "span_id": "gh-ghix-transit--001",
+        "network_id": "gh-broadspectrum",
+        "name": "Benin–Ghana Coastal Fiber Link",
+        "operator": "BroadSpectrum",
+        "operator_id": null,
+        "country_iso": "XA",
+        "countries": ["BJ", "TG", "GH"],
+        "region": "africa",
+        "status": "planned",
+        "burial_type": "underground",
+        "length_km": 290,
+        "capacity_gbps": null,
+        "capacity_class": "unknown",
+        "fiber_pairs": null,
+        "fiber_type": null,
+        "phase_id": null,
+        "phase_name": "West African Coastal Ring — Phase 2",
+        "construction_start": "2026-01-01",
+        "ready_for_service": "2028-06-01",
+        "funders": ["World Bank", "AfDB"],
+        "contracts": [],
+        "source": "OFDS-datasets",
+        "source_url": "https://github.com/stevesong/OFDS-datasets",
+        "license": "CC-BY-4.0",
+        "attribution": "stevesong/OFDS-datasets (CC-BY). Geometry is approximate.",
+        "last_updated": "2026-04-02",
+        "notes": "Planned route. Alignment subject to change.",
+        "ofds_span_id": null,
+        "osm_way_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.3792, 6.5244]
+      },
+      "properties": {
+        "ofm_layer": "fiber-nodes",
+        "node_id": "ixp-ng-lixp-01",
+        "network_id": "ng-lixp",
+        "name": "Lagos Internet Exchange (LIXP)",
+        "name_short": "LIXP",
+        "operator": "NigComSat / Community",
+        "node_type": "ixp",
+        "status": "operational",
+        "city": "Lagos",
+        "country_iso": "NG",
+        "region": "africa",
+        "address": "Lagos, Nigeria",
+        "floor_space_sqm": null,
+        "power_mw": null,
+        "connected_networks": [],
+        "peeringdb_id": null,
+        "peeringdb_ix_id": 538,
+        "website": "https://www.nix.ng",
+        "source": "PeeringDB",
+        "source_url": "https://www.peeringdb.com/ix/538",
+        "license": "CC0-1.0",
+        "attribution": "PeeringDB (CC0)",
+        "last_updated": "2026-04-02",
+        "notes": "Nigeria Internet Exchange. Coordinates approximate (city centre).",
+        "osm_node_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [36.8219, -1.2921]
+      },
+      "properties": {
+        "ofm_layer": "fiber-nodes",
+        "node_id": "ixp-ke-kixp-01",
+        "network_id": "ke-kixp",
+        "name": "Kenya Internet Exchange Point (KIXP)",
+        "name_short": "KIXP",
+        "operator": "TESPOK",
+        "node_type": "ixp",
+        "status": "operational",
+        "city": "Nairobi",
+        "country_iso": "KE",
+        "region": "africa",
+        "address": "Nairobi, Kenya",
+        "floor_space_sqm": null,
+        "power_mw": null,
+        "connected_networks": [],
+        "peeringdb_id": null,
+        "peeringdb_ix_id": 1376,
+        "website": "https://www.kixp.ke",
+        "source": "PeeringDB",
+        "source_url": "https://www.peeringdb.com/ix/1376",
+        "license": "CC0-1.0",
+        "attribution": "PeeringDB (CC0)",
+        "last_updated": "2026-04-02",
+        "notes": null,
+        "osm_node_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [28.0339, -26.2041]
+      },
+      "properties": {
+        "ofm_layer": "fiber-nodes",
+        "node_id": "dc-za-teraco-jb1",
+        "network_id": "za-teraco",
+        "name": "Teraco Johannesburg Campus (JB1)",
+        "name_short": "Teraco JB1",
+        "operator": "Teraco Data Environments",
+        "node_type": "data-center",
+        "status": "operational",
+        "city": "Johannesburg",
+        "country_iso": "ZA",
+        "region": "africa",
+        "address": "Bredell Road, Isando, Kempton Park, Johannesburg, South Africa",
+        "floor_space_sqm": 14000,
+        "power_mw": 28,
+        "connected_networks": [],
+        "peeringdb_id": 445,
+        "peeringdb_ix_id": null,
+        "website": "https://www.teraco.co.za",
+        "source": "PeeringDB",
+        "source_url": "https://www.peeringdb.com/fac/445",
+        "license": "CC0-1.0",
+        "attribution": "PeeringDB (CC0)",
+        "last_updated": "2026-04-02",
+        "notes": "Africa's largest carrier-neutral data centre campus. Also hosts JINX.",
+        "osm_node_id": null
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [39.6682, -4.0435]
+      },
+      "properties": {
+        "ofm_layer": "fiber-nodes",
+        "node_id": "ls-ke-mombasa-seacom-01",
+        "network_id": "global-seacom",
+        "name": "SEACOM Mombasa Landing Station",
+        "name_short": "SEACOM Mombasa",
+        "operator": "SEACOM",
+        "node_type": "landing-station",
+        "status": "operational",
+        "city": "Mombasa",
+        "country_iso": "KE",
+        "region": "africa",
+        "address": "Mombasa, Kenya",
+        "floor_space_sqm": null,
+        "power_mw": null,
+        "connected_networks": [],
+        "peeringdb_id": null,
+        "peeringdb_ix_id": null,
+        "website": "https://www.seacom.com",
+        "source": "Submarine Cable Map",
+        "source_url": "https://www.submarinecablemap.com",
+        "license": "CC-BY-SA-4.0",
+        "attribution": "TeleGeography Submarine Cable Map (CC-BY-SA)",
+        "last_updated": "2026-04-02",
+        "notes": "Landing station for SEACOM submarine cable. Key link to terrestrial backhaul.",
+        "osm_node_id": null
+      }
+    }
+
+  ]
+}
