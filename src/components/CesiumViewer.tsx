@@ -1,0 +1,228 @@
+/**
+ * CesiumViewer.tsx — Core CesiumJS globe component.
+ *
+ * Mounts the Cesium Viewer into a full-screen div, loads GeoJSON data layers,
+ * handles click picking, and exposes imperative controls via ref.
+ */
+
+import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import * as Cesium from "cesium";
+import "cesium/Build/Cesium/Widgets/widgets.css";
+import type { FilterState, SelectedFeature } from "@/types";
+import { loadGeoJSON, removeLayer, pickFeature, type LoadedLayer } from "@/lib/dataLoader";
+
+// ─── Public imperative handle ─────────────────────────────────────────────────
+
+export interface CesiumViewerHandle {
+  zoomToRegion: (region: string) => void;
+  zoomToFeature: (lon: number, lat: number) => void;
+  set3DMode: (is3D: boolean) => void;
+  setUnderground: (enabled: boolean) => void;
+  reloadLayers: () => void;
+}
+
+// ─── Region bounding rectangles ───────────────────────────────────────────────
+
+const REGION_RECTS: Record<string, Cesium.Rectangle> = {
+  africa:       Cesium.Rectangle.fromDegrees(-20, -35,  55,  38),
+  americas:     Cesium.Rectangle.fromDegrees(-82, -56, -34,  72),
+  europe:       Cesium.Rectangle.fromDegrees(-12,  34,  42,  72),
+  "asia-pacific": Cesium.Rectangle.fromDegrees(25, -10, 155,  55),
+  "middle-east":  Cesium.Rectangle.fromDegrees(32,  12,  63,  42),
+  global:       Cesium.Rectangle.fromDegrees(-180, -85, 180,  85),
+};
+
+// ─── Dataset files to load ───────────────────────────────────────────────────
+
+const DATA_FILES = [
+  "./data/spans-afterfibre-africa.geojson",
+  "./data/nodes-afterfibre-africa.geojson",
+  "./data/spans-brazil.geojson",
+  "./data/nodes-brazil.geojson",
+  "./data/sample-africa.geojson",
+];
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  filters: FilterState;
+  showSpans: boolean;
+  showNodes: boolean;
+  onFeatureSelect: (feature: SelectedFeature | null) => void;
+  cesiumIonToken?: string;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer(
+  { filters, showSpans, showNodes, onFeatureSelect, cesiumIonToken },
+  ref
+) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef    = useRef<Cesium.Viewer | null>(null);
+  const layersRef    = useRef<LoadedLayer[]>([]);
+  const handlerRef   = useRef<Cesium.ScreenSpaceEventHandler | null>(null);
+
+  // ─── Imperative API ──────────────────────────────────────────────────────
+
+  useImperativeHandle(ref, () => ({
+    zoomToRegion(region: string) {
+      if (!viewerRef.current) return;
+      const rect = REGION_RECTS[region] ?? REGION_RECTS["global"];
+      viewerRef.current.camera.flyTo({ destination: rect, duration: 1.5 });
+    },
+    zoomToFeature(lon: number, lat: number) {
+      if (!viewerRef.current) return;
+      viewerRef.current.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 500_000),
+        duration: 1.2,
+      });
+    },
+    set3DMode(is3D: boolean) {
+      if (!viewerRef.current) return;
+      if (is3D) viewerRef.current.scene.morphTo3D(0.5);
+      else       viewerRef.current.scene.morphTo2D(0.5);
+    },
+    setUnderground(enabled: boolean) {
+      if (!viewerRef.current) return;
+      const globe = viewerRef.current.scene.globe;
+      globe.translucency.enabled = enabled;
+      globe.translucency.frontFaceAlpha = enabled ? 0.4 : 1.0;
+      // undergroundColor accepts Color; just reset to default dark when off
+      globe.undergroundColor = Cesium.Color.fromCssColorString(
+        enabled ? "#0a0a1a" : "#000014"
+      );
+    },
+    reloadLayers() {
+      reloadAllLayers();
+    },
+  }));
+
+  // ─── Layer reload ─────────────────────────────────────────────────────────
+
+  const reloadAllLayers = useCallback(async () => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    for (const layer of layersRef.current) {
+      removeLayer(viewer.scene, layer);
+    }
+    layersRef.current = [];
+
+    const results = await Promise.allSettled(
+      DATA_FILES.map((url) => loadGeoJSON(viewer.scene, url, filters))
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const layer = result.value;
+        layer.polylines.show = showSpans;
+        layer.billboards.show = showNodes;
+        layer.labels.show = showNodes;
+        layersRef.current.push(layer);
+      } else {
+        console.warn("Layer load failed:", result.reason);
+      }
+    }
+  }, [filters, showSpans, showNodes]);
+
+  // ─── Mount Cesium Viewer (once) ───────────────────────────────────────────
+
+  useEffect(() => {
+    if (!containerRef.current || viewerRef.current) return;
+
+    Cesium.Ion.defaultAccessToken = cesiumIonToken ?? "";
+
+    // Build base imagery layer (OSM — no token needed)
+    const osmProvider = new Cesium.OpenStreetMapImageryProvider({
+      url: "https://tile.openstreetmap.org/",
+      credit: "© OpenStreetMap contributors",
+    });
+
+    const viewer = new Cesium.Viewer(containerRef.current, {
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+        Promise.resolve(osmProvider)
+      ),
+      // Terrain: flat unless ion token given (async API in Cesium ≥1.110)
+      terrain: cesiumIonToken
+        ? Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true })
+        : undefined,
+      baseLayerPicker:       false,
+      geocoder:              false,
+      homeButton:            false,
+      sceneModePicker:       false,
+      navigationHelpButton:  false,
+      animation:             false,
+      timeline:              false,
+      fullscreenButton:      false,
+      vrButton:              false,
+      infoBox:               false,
+      selectionIndicator:    false,
+      requestRenderMode:     false,
+      maximumRenderTimeChange: Infinity,
+      scene3DOnly:           false,
+    });
+
+    // Globe appearance
+    viewer.scene.globe.enableLighting     = true;
+    viewer.scene.globe.showGroundAtmosphere = true;
+    if (viewer.scene.skyAtmosphere) {
+      viewer.scene.skyAtmosphere.show = true;
+    }
+
+    // Dark space background
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#0a0a1a");
+
+    // Fly to Africa on start
+    viewer.camera.flyTo({ destination: REGION_RECTS["africa"], duration: 0 });
+
+    viewerRef.current = viewer;
+
+    // ── Click pick handler ───────────────────────────────────────────────
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction(
+      (movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+        const feature = pickFeature(viewer.scene, movement.position, layersRef.current);
+        onFeatureSelect(feature);
+      },
+      Cesium.ScreenSpaceEventType.LEFT_CLICK
+    );
+    handlerRef.current = handler;
+
+    return () => {
+      handler.destroy();
+      viewer.destroy();
+      viewerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── Reload on filter/visibility change ──────────────────────────────────
+
+  useEffect(() => {
+    reloadAllLayers();
+  }, [reloadAllLayers]);
+
+  // ─── Sync span/node visibility without full reload ────────────────────────
+
+  useEffect(() => {
+    for (const layer of layersRef.current) layer.polylines.show = showSpans;
+  }, [showSpans]);
+
+  useEffect(() => {
+    for (const layer of layersRef.current) {
+      layer.billboards.show = showNodes;
+      layer.labels.show     = showNodes;
+    }
+  }, [showNodes]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 w-full h-full"
+      style={{ background: "#0a0a1a" }}
+    />
+  );
+});
+
+export default CesiumViewer;

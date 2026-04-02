@@ -1,0 +1,34 @@
+{
+  "name": "openfibermap",
+  "version": "0.1.0",
+  "description": "Free, open-source interactive 3D global fiber optic network map",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "etl": "python scripts/run_etl.sh",
+    "etl:offline": "python scripts/run_etl.sh --offline"
+  },
+  "dependencies": {
+    "cesium": "^1.115.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vite-plugin-cesium": "^1.2.22"
+  }
+}

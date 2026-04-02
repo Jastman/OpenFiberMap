@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a1a;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cesium widget overrides */
+  .cesium-widget,
+  .cesium-widget canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Hide Cesium's built-in credit bar — we show attribution in the sidebar */
+  .cesium-credit-logoContainer,
+  .cesium-credit-lightbox-overlay {
+    display: none !important;
+  }
+
+  .cesium-credit-textContainer {
+    font-size: 10px !important;
+    opacity: 0.5 !important;
+    bottom: 2px !important;
+    right: 4px !important;
+  }
+}
+
+/* ── Utilities ─────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .shadow-panel {
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* Thin scrollbar */
+  .overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+  }
+
+  /* Loading pulse */
+  @keyframes fiber-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .animate-fiber-pulse {
+    animation: fiber-pulse 2s ease-in-out infinite;
+  }
+
+  /* Glow effects for fiber lines (applied to SVG elements in legend) */
+  .glow-green { filter: drop-shadow(0 0 4px #32C850); }
+  .glow-cyan  { filter: drop-shadow(0 0 6px #00E6FF); }
+}

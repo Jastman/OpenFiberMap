@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title>OpenFiberMap — Global Fiber Optic Network Map</title>
+    <meta name="description"
+      content="Free, open-source, interactive 3D map of the world's terrestrial fiber optic networks. Browse routes, IXPs, data centers, and landing stations globally." />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="OpenFiberMap" />
+    <meta property="og:description" content="Free, open-source global fiber optic network visualization" />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon placeholder -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Preconnect to tile servers for faster map load -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" />
+
+    <style>
+      /* Critical path — prevent FOUC */
+      html, body { margin: 0; padding: 0; background: #0a0a1a; color: #fff; }
+      #root { width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
