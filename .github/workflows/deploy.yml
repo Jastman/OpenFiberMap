@@ -31,10 +31,16 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
-      - name: Run ETL pipeline (offline — seed data + cached APIs)
-        run: bash scripts/run_etl.sh --offline --skip osm
-        # In production, remove --offline to fetch live PeeringDB + Submarine Cable Map data.
-        # Add a secret PEERINGDB_API_KEY and pass it via --api-key for higher rate limits.
+      - name: Run ETL pipeline (live — PeeringDB, Submarine Cable Map, OFDS-datasets)
+        run: bash scripts/run_etl.sh --skip osm
+        # Fetches live data from:
+        #   PeeringDB (global IXPs + data centres, CC0, no auth needed)
+        #   Submarine Cable Map (global landing stations, CC-BY-SA, no auth needed)
+        #   OFDS-datasets GitHub repo (Africa + Americas spans, CC-BY)
+        #   AfTerFibre (Africa backbone, falls back to seed if unreachable)
+        #   Brazil RNP (falls back to seed if unreachable)
+        # OSM is skipped — Overpass queries are too slow/unreliable in CI.
+        # To raise PeeringDB rate limits (100→1000 req/min), add a PEERINGDB_API_KEY secret.
 
       - name: Validate sample output
         run: python scripts/validate_schema.py public/data/spans-afterfibre-africa.geojson -v
