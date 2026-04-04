@@ -79,6 +79,8 @@ jobs:
         env:
           # Optional: set your Cesium ion token as a GitHub secret
           VITE_CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_TOKEN }}
+          # Optional: add GOOGLE_MAPS_API_KEY secret to use Google Maps base layer
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           # Set base path for GitHub Pages: /OpenFiberMap/ or /
           # If deploying to a custom domain, leave VITE_BASE_URL empty
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL || '' }}

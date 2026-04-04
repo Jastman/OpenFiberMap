@@ -51,12 +51,13 @@ interface Props {
   onFeatureSelect: (feature: SelectedFeature | null) => void;
   onFeatureHover?: (feature: SelectedFeature | null, x: number, y: number) => void;
   cesiumIonToken?: string;
+  googleMapsApiKey?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer(
-  { filters, showSpans, showNodes, onFeatureSelect, onFeatureHover, cesiumIonToken },
+  { filters, showSpans, showNodes, onFeatureSelect, onFeatureHover, cesiumIonToken, googleMapsApiKey },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,16 +152,24 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
 
     Cesium.Ion.defaultAccessToken = cesiumIonToken ?? "";
 
-    // Build base imagery layer (OSM — no token needed)
-    const osmProvider = new Cesium.OpenStreetMapImageryProvider({
-      url: "https://tile.openstreetmap.org/",
-      credit: "© OpenStreetMap contributors",
-    });
+    // Base imagery: Google Maps if API key present, else OSM
+    let baseLayer: Cesium.ImageryLayer;
+    if (googleMapsApiKey) {
+      Cesium.GoogleMaps.defaultApiKey = googleMapsApiKey;
+      baseLayer = Cesium.ImageryLayer.fromProviderAsync(
+        Cesium.Google2DImageryProvider.fromUrl({ mapType: "roadmap", key: googleMapsApiKey }) as Promise<Cesium.ImageryProvider>
+      );
+    } else {
+      baseLayer = Cesium.ImageryLayer.fromProviderAsync(
+        Promise.resolve(new Cesium.OpenStreetMapImageryProvider({
+          url: "https://tile.openstreetmap.org/",
+          credit: "© OpenStreetMap contributors",
+        }))
+      );
+    }
 
     const viewer = new Cesium.Viewer(containerRef.current, {
-      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-        Promise.resolve(osmProvider)
-      ),
+      baseLayer,
       // Terrain: flat unless ion token given (async API in Cesium ≥1.110)
       terrain: cesiumIonToken
         ? Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true })
@@ -227,19 +236,22 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
     handlerRef.current = handler;
 
     // ── Camera altitude → minor node visibility ──────────────────────────
-    // Fires after each camera move ends (throttled by Cesium)
-    const onCameraChanged = () => {
+    // camera.moveEnd fires after every pan/zoom ends (more reliable than
+    // camera.changed which only fires on >50% positional delta).
+    const updateMinorVisibility = () => {
       const altitude = viewer.camera.positionCartographic.height;
       const showMinor = altitude < 1_500_000;
       for (const layer of layersRef.current) {
         layer.billboardsMinor.show = showMinor;
+        // Also show labels for minor nodes when close enough
+        layer.labels.show = altitude < 3_000_000;
       }
     };
-    viewer.camera.changed.addEventListener(onCameraChanged);
+    viewer.camera.moveEnd.addEventListener(updateMinorVisibility);
 
     return () => {
       handler.destroy();
-      viewer.camera.changed.removeEventListener(onCameraChanged);
+      viewer.camera.moveEnd.removeEventListener(updateMinorVisibility);
       viewer.destroy();
       viewerRef.current = null;
     };

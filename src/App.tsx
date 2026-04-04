@@ -29,7 +29,8 @@ import { useMobile }    from "@/hooks/useMobile";
 import type { SelectedFeature, Region } from "@/types";
 
 // Read Cesium ion token from env (set VITE_CESIUM_ION_TOKEN= in .env.local)
-const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN as string | undefined;
+const CESIUM_TOKEN      = import.meta.env.VITE_CESIUM_ION_TOKEN as string | undefined;
+const GOOGLE_MAPS_KEY   = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 // Dataset year extent — update when adding newer planned-build data
 const TIMELINE_RANGE: YearRange = { min: 2000, max: 2030 };
@@ -142,6 +143,7 @@ export default function App() {
           onFeatureSelect={handleFeatureSelect}
           onFeatureHover={isMobile ? undefined : handleFeatureHover}
           cesiumIonToken={CESIUM_TOKEN}
+          googleMapsApiKey={GOOGLE_MAPS_KEY}
         />
       </div>
 
