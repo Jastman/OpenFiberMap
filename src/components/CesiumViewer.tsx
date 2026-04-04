@@ -152,108 +152,143 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
 
     Cesium.Ion.defaultAccessToken = cesiumIonToken ?? "";
 
-    // Base imagery: Google Maps if API key present, else OSM
-    let baseLayer: Cesium.ImageryLayer;
-    if (googleMapsApiKey) {
-      Cesium.GoogleMaps.defaultApiKey = googleMapsApiKey;
-      baseLayer = Cesium.ImageryLayer.fromProviderAsync(
-        Cesium.Google2DImageryProvider.fromUrl({ mapType: "roadmap", key: googleMapsApiKey }) as Promise<Cesium.ImageryProvider>
+    let cancelled = false;
+    // Holds cleanup refs so the return fn can teardown even if init is in-flight
+    let cleanupFn: (() => void) | null = null;
+
+    const osmLayer = () =>
+      Cesium.ImageryLayer.fromProviderAsync(
+        Promise.resolve(
+          new Cesium.OpenStreetMapImageryProvider({
+            url: "https://tile.openstreetmap.org/",
+            credit: "© OpenStreetMap contributors",
+          })
+        )
       );
-    } else {
-      baseLayer = Cesium.ImageryLayer.fromProviderAsync(
-        Promise.resolve(new Cesium.OpenStreetMapImageryProvider({
-          url: "https://tile.openstreetmap.org/",
-          credit: "© OpenStreetMap contributors",
-        }))
-      );
-    }
 
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      baseLayer,
-      // Terrain: flat unless ion token given (async API in Cesium ≥1.110)
-      terrain: cesiumIonToken
-        ? Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true })
-        : undefined,
-      baseLayerPicker:       false,
-      geocoder:              false,
-      homeButton:            false,
-      sceneModePicker:       false,
-      navigationHelpButton:  false,
-      animation:             false,
-      timeline:              false,
-      fullscreenButton:      false,
-      vrButton:              false,
-      infoBox:               false,
-      selectionIndicator:    false,
-      requestRenderMode:     false,
-      maximumRenderTimeChange: Infinity,
-      scene3DOnly:           false,
-    });
-
-    // Globe appearance
-    viewer.scene.globe.enableLighting     = true;
-    viewer.scene.globe.showGroundAtmosphere = true;
-    if (viewer.scene.skyAtmosphere) {
-      viewer.scene.skyAtmosphere.show = true;
-    }
-
-    // Dark space background
-    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#0a0a1a");
-
-    // Start with a global view
-    viewer.camera.flyTo({ destination: REGION_RECTS["global"], duration: 0 });
-
-    viewerRef.current = viewer;
-
-    // ── Click + hover pick handlers ──────────────────────────────────────
-    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-
-    handler.setInputAction(
-      (movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
-        const feature = pickFeature(viewer.scene, movement.position, layersRef.current);
-        onFeatureSelect(feature);
-      },
-      Cesium.ScreenSpaceEventType.LEFT_CLICK
-    );
-
-    // Hover: throttled via rAF to avoid redundant picks mid-frame
-    let hoverRaf = 0;
-    handler.setInputAction(
-      (movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
-        if (!onFeatureHover) return;
-        cancelAnimationFrame(hoverRaf);
-        const pos = movement.endPosition;
-        hoverRaf = requestAnimationFrame(() => {
-          const feature = pickFeature(viewer.scene, pos, layersRef.current);
-          // Convert Cesium canvas coords to page coords
-          const rect = (viewer.scene.canvas as HTMLCanvasElement).getBoundingClientRect();
-          onFeatureHover(feature, rect.left + pos.x, rect.top + pos.y);
-        });
-      },
-      Cesium.ScreenSpaceEventType.MOUSE_MOVE
-    );
-
-    handlerRef.current = handler;
-
-    // ── Camera altitude → minor node visibility ──────────────────────────
-    // camera.moveEnd fires after every pan/zoom ends (more reliable than
-    // camera.changed which only fires on >50% positional delta).
-    const updateMinorVisibility = () => {
-      const altitude = viewer.camera.positionCartographic.height;
-      const showMinor = altitude < 1_500_000;
-      for (const layer of layersRef.current) {
-        layer.billboardsMinor.show = showMinor;
-        // Also show labels for minor nodes when close enough
-        layer.labels.show = altitude < 3_000_000;
+    const init = async () => {
+      // Base imagery: try Google Maps, fall back to OSM on any error
+      let baseLayer: Cesium.ImageryLayer;
+      if (googleMapsApiKey) {
+        try {
+          Cesium.GoogleMaps.defaultApiKey = googleMapsApiKey;
+          const provider = await Cesium.Google2DImageryProvider.fromUrl({
+            mapType: "roadmap",
+            key: googleMapsApiKey,
+          });
+          baseLayer = new Cesium.ImageryLayer(
+            provider as unknown as Cesium.ImageryProvider
+          );
+        } catch (e) {
+          console.warn("Google Maps base layer failed — falling back to OSM:", e);
+          baseLayer = osmLayer();
+        }
+      } else {
+        baseLayer = osmLayer();
       }
+
+      if (cancelled || !containerRef.current) return;
+
+      const viewer = new Cesium.Viewer(containerRef.current, {
+        baseLayer,
+        // Terrain: flat unless ion token given (async API in Cesium ≥1.110)
+        terrain: cesiumIonToken
+          ? Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true })
+          : undefined,
+        baseLayerPicker:       false,
+        geocoder:              false,
+        homeButton:            false,
+        sceneModePicker:       false,
+        navigationHelpButton:  false,
+        animation:             false,
+        timeline:              false,
+        fullscreenButton:      false,
+        vrButton:              false,
+        infoBox:               false,
+        selectionIndicator:    false,
+        requestRenderMode:     false,
+        maximumRenderTimeChange: Infinity,
+        scene3DOnly:           false,
+      });
+
+      // Globe appearance
+      viewer.scene.globe.enableLighting     = true;
+      viewer.scene.globe.showGroundAtmosphere = true;
+      if (viewer.scene.skyAtmosphere) {
+        viewer.scene.skyAtmosphere.show = true;
+      }
+
+      // Dark space background
+      viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#0a0a1a");
+
+      // Start with a global view
+      viewer.camera.flyTo({ destination: REGION_RECTS["global"], duration: 0 });
+
+      viewerRef.current = viewer;
+
+      // ── Click + hover pick handlers ────────────────────────────────────
+      const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+      handler.setInputAction(
+        (movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+          const feature = pickFeature(viewer.scene, movement.position, layersRef.current);
+          onFeatureSelect(feature);
+        },
+        Cesium.ScreenSpaceEventType.LEFT_CLICK
+      );
+
+      // Hover: throttled via rAF to avoid redundant picks mid-frame
+      let hoverRaf = 0;
+      handler.setInputAction(
+        (movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
+          if (!onFeatureHover) return;
+          cancelAnimationFrame(hoverRaf);
+          const pos = movement.endPosition;
+          hoverRaf = requestAnimationFrame(() => {
+            const feature = pickFeature(viewer.scene, pos, layersRef.current);
+            // Convert Cesium canvas coords to page coords
+            const rect = (viewer.scene.canvas as HTMLCanvasElement).getBoundingClientRect();
+            onFeatureHover(feature, rect.left + pos.x, rect.top + pos.y);
+          });
+        },
+        Cesium.ScreenSpaceEventType.MOUSE_MOVE
+      );
+
+      handlerRef.current = handler;
+
+      // ── Camera altitude → minor node visibility ────────────────────────
+      // camera.moveEnd fires after every pan/zoom ends (more reliable than
+      // camera.changed which only fires on >50% positional delta).
+      const updateMinorVisibility = () => {
+        const altitude = viewer.camera.positionCartographic.height;
+        const showMinor = altitude < 1_500_000;
+        for (const layer of layersRef.current) {
+          layer.billboardsMinor.show = showMinor;
+          // Also show labels for minor nodes when close enough
+          layer.labels.show = altitude < 3_000_000;
+        }
+      };
+      viewer.camera.moveEnd.addEventListener(updateMinorVisibility);
+
+      cleanupFn = () => {
+        handler.destroy();
+        viewer.camera.moveEnd.removeEventListener(updateMinorVisibility);
+        viewer.destroy();
+        viewerRef.current = null;
+      };
+
+      // If the effect was cleaned up while we were awaiting, destroy immediately
+      if (cancelled) cleanupFn();
     };
-    viewer.camera.moveEnd.addEventListener(updateMinorVisibility);
+
+    init();
 
     return () => {
-      handler.destroy();
-      viewer.camera.moveEnd.removeEventListener(updateMinorVisibility);
-      viewer.destroy();
-      viewerRef.current = null;
+      cancelled = true;
+      if (cleanupFn) {
+        cleanupFn();
+        cleanupFn = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
