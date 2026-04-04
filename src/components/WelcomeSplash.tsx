@@ -34,19 +34,21 @@ export default function WelcomeSplash({ onClose }: Props) {
           </div>
 
           <p className="text-slate-300 text-sm leading-relaxed mb-3">
-            You know how apps like Google Maps show roads? This map shows the underground
-            cables that carry the internet itself — the fiber optic lines connecting cities,
-            countries, and continents on land.
+            Terrestrial fiber infrastructure — the backbone routes, conduits, and peering
+            points that carry internet traffic across continents — has no unified public
+            map. Submarine cables are comprehensively documented, but on-land routes are
+            fragmented across national regulatory filings, operator disclosures, and
+            crowdsourced contributions with inconsistent coverage and no common schema.
           </p>
           <p className="text-slate-300 text-sm leading-relaxed mb-3">
-            Unlike undersea cables (which are well-documented), land-based fiber routes are
-            scattered across thousands of telecom companies, government filings, and local
-            records with no single place to see them all. OpenFiberMap pulls from open
-            datasets to show routes, ownership, and capacity in one interactive 3D globe.
+            OpenFiberMap aggregates open-licensed datasets (AfTerFibre, OFDS, PeeringDB,
+            and others) into a single interactive globe, visualizing routes by capacity
+            tier, operational status, and operator. Coverage is densest in Africa and
+            select countries where structured open data exists.
           </p>
           <p className="text-slate-400 text-xs leading-relaxed">
-            Data is incomplete and approximate — coverage is best in Africa, Brazil, and
-            select countries. Click any route or node to inspect it.
+            Geometries are approximate — many routes are digitized from public maps rather
+            than authoritative records. Click any route or node to inspect its metadata.
           </p>
         </div>
 

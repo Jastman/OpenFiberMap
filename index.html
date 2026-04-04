@@ -21,8 +21,10 @@
 
     <style>
       /* Critical path — prevent FOUC */
-      html, body { margin: 0; padding: 0; background: #0a0a1a; color: #fff; }
-      #root { width: 100vw; height: 100vh; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0a0a1a; color: #fff; }
+      /* 100dvh (dynamic viewport height) correctly excludes iOS Safari browser chrome.
+         Fall back to 100vh for browsers that don't support dvh yet. */
+      #root { width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
     </style>
   </head>
   <body>
