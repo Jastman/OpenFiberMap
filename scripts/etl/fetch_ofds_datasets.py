@@ -113,16 +113,24 @@ def _get_tree(refresh: bool) -> list[dict]:
 def _find_geojson_files(tree: list[dict]) -> dict[str, list[str]]:
     """
     Return dict mapping file path → type ('spans' or 'nodes') for all
-    nodes.geojson and spans.geojson files in the tree.
+    span/node GeoJSON files in the tree.
+
+    Matches any .geojson file with 'span' or 'node' in the filename, e.g.:
+      Tanzania/NICTBB/NIC_ofds-spans_16apr2024.geojson
+      Rwanda/Rwanda_National_Backbone/RWA_ofds-nodes_16apr2024.geojson
+      Kenya/NOFBI/spans.geojson
     """
     files: dict[str, list[str]] = {"spans": [], "nodes": []}
     for item in tree:
         path = item.get("path", "")
         if item.get("type") != "blob":
             continue
-        if path.endswith("/spans.geojson") or path == "spans.geojson":
+        if not path.lower().endswith(".geojson"):
+            continue
+        filename = path.split("/")[-1].lower()
+        if "span" in filename:
             files["spans"].append(path)
-        elif path.endswith("/nodes.geojson") or path == "nodes.geojson":
+        elif "node" in filename:
             files["nodes"].append(path)
     return files
 
@@ -173,16 +181,24 @@ def _parse_path(path: str) -> tuple[str, str]:
 
 # Directory name → ISO alpha-2
 COUNTRY_DIR_MAP: dict[str, str] = {
+    # Africa
     "angola": "AO", "botswana": "BW", "burundi": "BI", "cameroon": "CM",
-    "drc": "CD", "kenya": "KE", "mozambique": "MZ", "namibia": "NA",
-    "niger": "NE", "nigeria": "NG", "rwanda": "RW", "south-africa": "ZA",
-    "south_africa": "ZA", "southafrica": "ZA", "sudan": "SD", "tanzania": "TZ",
-    "togo": "TG", "uganda": "UG", "zambia": "ZM", "zimbabwe": "ZW",
-    "ghana": "GH", "ethiopia": "ET", "senegal": "SN", "côte-d'ivoire": "CI",
-    "cote-d-ivoire": "CI", "ivory-coast": "CI", "mali": "ML",
+    "drc": "CD", "congo": "CD", "kenya": "KE", "mozambique": "MZ", "namibia": "NA",
+    "niger": "NE", "nigeria": "NG", "rwanda": "RW",
+    "south-africa": "ZA", "south_africa": "ZA", "southafrica": "ZA",
+    "sudan": "SD", "tanzania": "TZ", "togo": "TG", "uganda": "UG",
+    "zambia": "ZM", "zimbabwe": "ZW", "ghana": "GH", "ethiopia": "ET",
+    "senegal": "SN", "côte-d'ivoire": "CI", "cote-d-ivoire": "CI",
+    "ivory-coast": "CI", "mali": "ML", "malawi": "MW", "madagascar": "MG",
+    "somalia": "SO", "eritrea": "ER", "south-sudan": "SS", "south_sudan": "SS",
+    # Americas
     "brazil": "BR", "canada": "CA", "costa-rica": "CR", "costa_rica": "CR",
-    "georgia": "GE", "new-zealand": "NZ", "new_zealand": "NZ",
-    "nicaragua": "NI", "panama": "PA", "venezuela": "VE",
+    "nicaragua": "NI", "panama": "PA", "venezuela": "VE", "chile": "CL",
+    "colombia": "CO", "peru": "PE", "argentina": "AR", "mexico": "MX",
+    "ecuador": "EC", "bolivia": "BO", "paraguay": "PY", "uruguay": "UY",
+    # Other
+    "australia": "AU", "new-zealand": "NZ", "new_zealand": "NZ",
+    "georgia": "GE",
 }
 
 
@@ -202,21 +218,26 @@ def _ofds_span_to_ofm(feat: dict, country_iso: str, operator: str, path: str, se
     if not coords:
         return None
 
-    network_id = f"{country_iso.lower()}-{slugify(operator)}"
+    # OFDS v0.3.0 uses network.name; v1.0 may use operator directly
+    network_obj = props.get("network") or {}
+    network_name = network_obj.get("name") if isinstance(network_obj, dict) else None
+    resolved_operator = network_name or operator
+
+    network_id = f"{country_iso.lower()}-{slugify(resolved_operator)}"
     span_id    = make_span_id(network_id, seq)
     region     = region_from_iso(country_iso)
 
-    # Map OFDS status
-    ofds_status = props.get("status") or props.get("deploymentDetails", {}).get("deploymentState", "")
+    # Map OFDS status (v0.3.0 may not have status; v1.0 does)
+    ofds_status = props.get("status") or (props.get("deploymentDetails") or {}).get("deploymentState", "")
     status = OFDS_STATUS_MAP.get(ofds_status, "unknown")
 
     # Burial type
-    burial_raw = (props.get("physicalInfrastructureProvider", {}) or {}).get("type", "") \
-                 or props.get("deploymentDetails", {}).get("fibreType", "")
+    burial_raw = ((props.get("physicalInfrastructureProvider") or {}).get("type", "")
+                  or (props.get("deploymentDetails") or {}).get("fibreType", ""))
     burial = BURIAL_MAP.get(burial_raw, None)
 
     # Capacity
-    capacity_raw = props.get("capacity") or props.get("capacityDetails", {})
+    capacity_raw = props.get("capacity") or props.get("capacityDetails") or {}
     capacity_gbps = None
     if isinstance(capacity_raw, dict):
         capacity_gbps = capacity_raw.get("capacity")
@@ -234,14 +255,14 @@ def _ofds_span_to_ofm(feat: dict, country_iso: str, operator: str, path: str, se
     # OFDS original span id
     ofds_span_id = props.get("id") or props.get("spanId") or None
 
-    # Name
-    name = props.get("name") or props.get("id") or None
+    # Name — use span name, falling back to network name
+    name = props.get("name") or network_name or None
 
     return span_feature(
         span_id=span_id,
         network_id=network_id,
         name=name,
-        operator=operator,
+        operator=resolved_operator,
         coordinates=coords,
         country_iso=country_iso,
         countries=[country_iso],

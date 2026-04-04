@@ -49,19 +49,29 @@ from scripts.etl.utils import (
 # ---------------------------------------------------------------------------
 
 SPANS_URLS = [
+    # Current domain (opentelecomdata.org)
+    "https://afterfibre.opentelecomdata.org/api/v1/network/geojson",
+    "https://afterfibre.opentelecomdata.org/api/networks.geojson",
+    "https://afterfibre.opentelecomdata.org/geo/networks.geojson",
+    "https://afterfibre.opentelecomdata.org/data/spans.geojson",
+    # Legacy domain (nsrc.org)
     "https://afterfibre.nsrc.org/api/v1/network/geojson",
     "https://afterfibre.nsrc.org/api/networks.geojson",
-    "https://afterfibre.nsrc.org/geo/networks",
 ]
 NODES_URLS = [
+    # Current domain
+    "https://afterfibre.opentelecomdata.org/api/v1/node/geojson",
+    "https://afterfibre.opentelecomdata.org/api/nodes.geojson",
+    "https://afterfibre.opentelecomdata.org/geo/nodes.geojson",
+    "https://afterfibre.opentelecomdata.org/data/nodes.geojson",
+    # Legacy domain
     "https://afterfibre.nsrc.org/api/v1/node/geojson",
     "https://afterfibre.nsrc.org/api/nodes.geojson",
-    "https://afterfibre.nsrc.org/geo/nodes",
 ]
 
 SOURCE      = "AfTerFibre"
 LICENSE     = "CC-BY-4.0"
-ATTRIBUTION = "AfTerFibre / NSRC (CC-BY) — https://afterfibre.nsrc.org"
+ATTRIBUTION = "AfTerFibre / OpenTelecomData (CC-BY) — https://afterfibre.opentelecomdata.org"
 
 # AfTerFibre status strings → OFM
 STATUS_MAP = {
@@ -169,6 +179,201 @@ SEED_SPANS = [
         name="Camtel National Backbone", status="deployed", burial_type="underground",
         capacity_gbps=20, length_km=2100,
         coordinates=[[9.70,4.06],[11.52,3.87],[13.58,4.36],[14.47,10.46],[15.05,12.11]],
+    ),
+    # Egypt backbone
+    dict(
+        network_id="eg-telecom-egypt", operator="Telecom Egypt", country_iso="EG",
+        name="Telecom Egypt National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=100, length_km=3500,
+        coordinates=[[31.24,30.06],[31.40,29.90],[32.27,29.02],[32.54,27.18],[33.80,23.97],
+                     [32.90,22.00],[32.53,21.52],[13.18,23.60]],
+        countries=["EG","SD"],
+    ),
+    # Sudan backbone
+    dict(
+        network_id="sd-sudatel", operator="Sudatel", country_iso="SD",
+        name="Sudatel National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=2400,
+        coordinates=[[32.53,15.60],[33.00,13.50],[34.00,11.50],[35.00,9.60],[36.00,8.00],[38.74,9.01]],
+        countries=["SD","ET"],
+    ),
+    # Morocco backbone
+    dict(
+        network_id="ma-maroc-telecom", operator="Maroc Telecom", country_iso="MA",
+        name="Maroc Telecom National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=100, length_km=3000,
+        coordinates=[[-5.00,35.77],[-5.83,35.76],[-7.62,33.59],[-8.00,31.63],
+                     [-8.99,27.15],[-12.90,23.68],[-13.15,18.08],[-15.97,12.36]],
+        countries=["MA","MR","SN"],
+    ),
+    # Algeria backbone
+    dict(
+        network_id="dz-algerie-telecom", operator="Algérie Télécom", country_iso="DZ",
+        name="Algérie Télécom National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=40, length_km=4000,
+        coordinates=[[3.07,36.75],[3.00,35.00],[2.00,33.00],[0.00,31.00],
+                     [-2.00,28.00],[-5.00,25.00],[-3.00,23.00],[1.52,21.65]],
+        countries=["DZ","ML","NE"],
+    ),
+    # DRC backbone (Liquid)
+    dict(
+        network_id="cd-liquid-telecom", operator="Liquid Intelligent Technologies", country_iso="CD",
+        name="Liquid DRC Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=40, length_km=3000,
+        coordinates=[[15.27,-4.32],[17.00,-5.50],[22.00,-7.00],[24.00,-8.50],
+                     [26.00,-8.80],[27.47,-8.76],[28.32,-14.44],[28.29,-15.41]],
+        countries=["CD","ZM"],
+    ),
+    # Mozambique backbone (TDM)
+    dict(
+        network_id="mz-tdm", operator="Telecomunicações de Moçambique (TDM)", country_iso="MZ",
+        name="TDM National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=20, length_km=2500,
+        coordinates=[[32.59,-25.97],[33.50,-24.50],[34.80,-22.00],[35.30,-19.00],
+                     [35.56,-17.36],[35.33,-15.40],[35.00,-13.00],[35.92,-11.34]],
+        countries=["MZ","ZW","ZM","TZ"],
+    ),
+    # Zambia backbone (Zamtel)
+    dict(
+        network_id="zm-zamtel", operator="Zamtel", country_iso="ZM",
+        name="Zamtel National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=2100,
+        coordinates=[[28.29,-15.41],[28.45,-14.50],[28.40,-13.00],[28.18,-12.00],
+                     [27.87,-8.78],[28.22,-7.00],[29.73,-6.80],[32.58,-9.27]],
+        countries=["ZM","CD","TZ"],
+    ),
+    # Ghana backbone (GHANA)
+    dict(
+        network_id="gh-vodafone-gh", operator="Vodafone Ghana", country_iso="GH",
+        name="Vodafone Ghana National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=40, length_km=1400,
+        coordinates=[[-0.19,5.56],[-0.18,6.69],[-1.62,7.34],[-2.10,9.40],
+                     [-1.05,10.61],[0.84,10.89],[1.10,9.50]],
+        countries=["GH","TG"],
+    ),
+    # South Africa — detailed
+    dict(
+        network_id="za-liquid-sa", operator="Liquid Intelligent Technologies South Africa",
+        country_iso="ZA", name="Liquid SA Cape Town–Durban", status="deployed",
+        burial_type="underground", capacity_gbps=200, length_km=1600,
+        coordinates=[[18.42,-33.93],[19.00,-33.80],[22.00,-33.90],[24.84,-33.98],
+                     [26.87,-33.01],[29.00,-29.90],[30.87,-29.87],[31.03,-29.86]],
+    ),
+    # Libya backbone
+    dict(
+        network_id="ly-lptic", operator="LPTIC (Libya)", country_iso="LY",
+        name="Libya LPTIC Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=2500,
+        coordinates=[[13.18,32.89],[13.50,32.40],[14.00,31.00],[15.00,30.00],
+                     [18.00,29.00],[22.00,29.10],[25.00,30.00],[24.92,30.97]],
+    ),
+    # Tunisia backbone
+    dict(
+        network_id="tn-tunisie-telecom", operator="Tunisie Télécom", country_iso="TN",
+        name="Tunisie Télécom National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=40, length_km=1200,
+        coordinates=[[10.17,36.82],[9.56,35.83],[9.20,34.74],[8.70,33.88],
+                     [8.80,32.00],[9.50,30.26],[10.80,29.10]],
+    ),
+    # Zimbabwe — Liquid
+    dict(
+        network_id="zw-liquid", operator="Liquid Intelligent Technologies Zimbabwe",
+        country_iso="ZW", name="Liquid Zimbabwe National Backbone", status="deployed",
+        burial_type="underground", capacity_gbps=100, length_km=1200,
+        coordinates=[[31.02,-17.83],[31.50,-18.00],[31.60,-19.50],[32.67,-20.15],
+                     [28.58,-20.13],[27.00,-20.07],[26.00,-20.52],[25.85,-18.01]],
+    ),
+    # Botswana backbone
+    dict(
+        network_id="bw-bofinet", operator="BoFiNet Botswana", country_iso="BW",
+        name="BoFiNet National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=1800,
+        coordinates=[[25.91,-24.65],[25.00,-23.00],[24.65,-21.00],[24.00,-20.00],
+                     [25.85,-18.01],[27.00,-20.07],[26.37,-20.50]],
+    ),
+    # Namibia backbone (Paratus)
+    dict(
+        network_id="na-paratus", operator="Paratus Namibia", country_iso="NA",
+        name="Paratus Namibia Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=20, length_km=2500,
+        coordinates=[[17.08,-22.56],[17.00,-22.00],[18.50,-20.50],[19.00,-19.00],
+                     [20.00,-18.30],[21.00,-18.00],[22.00,-18.00],[23.00,-17.90],
+                     [24.27,-17.90],[25.00,-17.80],[25.85,-18.01]],
+        countries=["NA","BW","ZM"],
+    ),
+    # Angola backbone
+    dict(
+        network_id="ao-angola-telecom", operator="Angola Telecom", country_iso="AO",
+        name="Angola Telecom National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=3000,
+        coordinates=[[13.23,-8.84],[14.00,-10.00],[15.00,-11.00],[16.00,-12.00],
+                     [17.00,-12.50],[17.86,-12.37],[18.50,-13.00],[19.00,-13.50],
+                     [19.92,-13.41],[20.00,-14.00],[21.50,-15.00],[22.00,-16.50],
+                     [22.00,-17.50],[18.00,-17.50],[16.00,-15.00],[14.00,-12.00]],
+    ),
+    # Senegal backbone
+    dict(
+        network_id="sn-sonatel", operator="Sonatel", country_iso="SN",
+        name="Sonatel National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=40, length_km=1500,
+        coordinates=[[-17.44,14.69],[-17.00,15.00],[-16.50,14.20],[-15.50,13.50],
+                     [-14.50,12.90],[-13.50,12.50],[-12.00,12.70],[-10.00,13.50],
+                     [-9.00,14.50],[-8.00,14.00]],
+        countries=["SN","GM","GN","ML"],
+    ),
+    # Guinea / Sierra Leone / Liberia
+    dict(
+        network_id="gn-orange-gn", operator="Orange Guinea", country_iso="GN",
+        name="Orange Guinea–Sierra Leone–Liberia Corridor", status="deployed",
+        burial_type="underground", capacity_gbps=10, length_km=1500,
+        coordinates=[[-13.68,9.54],[-13.00,10.00],[-12.00,10.50],[-11.00,10.00],
+                     [-10.50,9.00],[-10.82,6.31],[-10.60,5.80],[-8.70,4.40]],
+        countries=["GN","SL","LR"],
+    ),
+    # North Africa coastal route
+    dict(
+        network_id="waf-north-coastal", operator="Various (North Africa Coastal)",
+        country_iso="TN", name="North Africa Mediterranean Coastal Route",
+        status="deployed", burial_type="underground", capacity_gbps=40, length_km=4000,
+        coordinates=[[10.17,36.82],[8.50,37.00],[5.00,36.50],[3.07,36.75],
+                     [0.00,36.60],[-2.00,35.50],[-5.00,35.77]],
+        countries=["TN","DZ","MA"],
+    ),
+    # East Africa coastal (SEACOM terrestrial)
+    dict(
+        network_id="eaf-seacom-terrestrial", operator="SEACOM", country_iso="KE",
+        name="SEACOM East Africa Terrestrial", status="deployed", burial_type="underground",
+        capacity_gbps=100, length_km=2000,
+        coordinates=[[39.67,-4.05],[37.67,-3.36],[36.82,-1.29],[35.00,0.50],
+                     [33.00,1.00],[32.58,0.35],[32.58,-1.10],[31.62,4.85]],
+        countries=["KE","TZ","UG","SS"],
+    ),
+    # Niger backbone
+    dict(
+        network_id="ne-niger-telecom", operator="Niger Télécoms", country_iso="NE",
+        name="Niger Télécoms National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=2200,
+        coordinates=[[2.12,13.51],[3.00,14.00],[4.00,13.50],[6.00,13.30],
+                     [7.99,13.50],[8.99,13.29],[10.00,13.00],[13.32,13.31],
+                     [14.89,13.10],[14.50,15.00],[13.50,15.50],[13.18,23.60]],
+    ),
+    # Mali backbone
+    dict(
+        network_id="ml-sotelma", operator="Sotelma / Orange Mali", country_iso="ML",
+        name="Sotelma Mali National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=2500,
+        coordinates=[[-7.99,12.65],[-8.00,13.00],[-6.00,14.00],[-4.00,15.00],
+                     [-2.00,16.00],[0.00,17.00],[1.52,21.65]],
+        countries=["ML","MR","DZ"],
+    ),
+    # Burundi backbone
+    dict(
+        network_id="bi-onatel-bi", operator="ONATEL Burundi", country_iso="BI",
+        name="ONATEL Burundi National Backbone", status="deployed", burial_type="underground",
+        capacity_gbps=10, length_km=800,
+        coordinates=[[29.36,-3.38],[30.00,-3.00],[30.06,-1.94],[29.73,-3.38],
+                     [29.50,-4.00],[30.13,-4.91]],
+        countries=["BI","RW"],
     ),
 ]
 
