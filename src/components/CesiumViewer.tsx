@@ -278,7 +278,11 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
       };
 
       // If the effect was cleaned up while we were awaiting, destroy immediately
-      if (cancelled) cleanupFn();
+      if (cancelled) { cleanupFn(); return; }
+
+      // Trigger initial data load — reloadAllLayers() returns early when
+      // viewerRef.current is null, so this must run after the viewer is set.
+      reloadAllLayers();
     };
 
     init();
