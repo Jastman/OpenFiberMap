@@ -100,6 +100,19 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
 
   // ─── Layer reload ─────────────────────────────────────────────────────────
 
+  // Minor nodes (DC, PoP) shown only when camera is closer than this altitude
+  const MINOR_NODE_ALTITUDE = 1_500_000; // 1500 km
+
+  const applyAltitudeVisibility = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    const altitude = viewer.camera.positionCartographic.height;
+    const showMinor = showNodes && altitude < MINOR_NODE_ALTITUDE;
+    for (const layer of layersRef.current) {
+      layer.billboardsMinor.show = showMinor;
+    }
+  }, [showNodes]);
+
   const reloadAllLayers = useCallback(async () => {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -113,18 +126,22 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
       DATA_FILES.map((url) => loadGeoJSON(viewer.scene, url, filters))
     );
 
+    const altitude = viewer.camera.positionCartographic.height;
+    const showMinor = showNodes && altitude < MINOR_NODE_ALTITUDE;
+
     for (const result of results) {
       if (result.status === "fulfilled") {
         const layer = result.value;
-        layer.polylines.show = showSpans;
-        layer.billboards.show = showNodes;
-        layer.labels.show = showNodes;
+        layer.polylines.show       = showSpans;
+        layer.billboards.show      = showNodes;
+        layer.billboardsMinor.show = showMinor;
+        layer.labels.show          = showNodes;
         layersRef.current.push(layer);
       } else {
         console.warn("Layer load failed:", result.reason);
       }
     }
-  }, [filters, showSpans, showNodes]);
+  }, [filters, showSpans, showNodes, applyAltitudeVisibility]);
 
   // ─── Mount Cesium Viewer (once) ───────────────────────────────────────────
 
@@ -189,8 +206,20 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
     );
     handlerRef.current = handler;
 
+    // ── Camera altitude → minor node visibility ──────────────────────────
+    // Fires after each camera move ends (throttled by Cesium)
+    const onCameraChanged = () => {
+      const altitude = viewer.camera.positionCartographic.height;
+      const showMinor = altitude < 1_500_000;
+      for (const layer of layersRef.current) {
+        layer.billboardsMinor.show = showMinor;
+      }
+    };
+    viewer.camera.changed.addEventListener(onCameraChanged);
+
     return () => {
       handler.destroy();
+      viewer.camera.changed.removeEventListener(onCameraChanged);
       viewer.destroy();
       viewerRef.current = null;
     };
@@ -210,9 +239,12 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
   }, [showSpans]);
 
   useEffect(() => {
+    const altitude = viewerRef.current?.camera.positionCartographic.height ?? Infinity;
+    const showMinor = showNodes && altitude < 1_500_000;
     for (const layer of layersRef.current) {
-      layer.billboards.show = showNodes;
-      layer.labels.show     = showNodes;
+      layer.billboards.show      = showNodes;
+      layer.billboardsMinor.show = showMinor;
+      layer.labels.show          = showNodes;
     }
   }, [showNodes]);
 

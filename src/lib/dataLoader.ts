@@ -2,11 +2,13 @@
  * dataLoader.ts — Load OpenFiberMap GeoJSON into Cesium as styled primitives.
  *
  * Strategy:
- *   - Spans → Cesium PolylineCollection (primitive; much faster than entities
- *     for thousands of lines, supports per-instance colour).
- *   - Nodes → Cesium BillboardCollection + LabelCollection.
- *   - We also keep a lookup map from Cesium primitive ID → OFM properties
- *     so click handlers can show the info panel.
+ *   - Spans  → PolylineCollection (fast, per-instance colour, always visible)
+ *   - Nodes  → Two BillboardCollections split by visual priority:
+ *       billboards      = Tier-1: IXP + landing-station (always shown)
+ *       billboardsMinor = Tier-2: DC, PoP, etc. (shown only when zoomed in)
+ *     CesiumViewer toggles billboardsMinor based on camera altitude.
+ *   - Labels → LabelCollection (fades with distance via NearFarScalar)
+ *   - Index maps: primitive id → OFM properties (for click picking)
  */
 
 import * as Cesium from "cesium";
@@ -26,14 +28,19 @@ import { spanColor, spanWidth, NODE_COLORS, NODE_SCALES } from "./cesiumStyles";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface LoadedLayer {
-  polylines: Cesium.PolylineCollection;
-  billboards: Cesium.BillboardCollection;
-  labels: Cesium.LabelCollection;
-  /** Map from primitive id (polyline/billboard index) → feature properties */
+  polylines:       Cesium.PolylineCollection;
+  /** Tier-1 nodes: IXP + landing-station — always visible */
+  billboards:      Cesium.BillboardCollection;
+  /** Tier-2 nodes: DC, PoP, etc. — shown only when zoomed in */
+  billboardsMinor: Cesium.BillboardCollection;
+  labels:          Cesium.LabelCollection;
   spanIndex: Map<string, FiberSpanProperties>;
   nodeIndex: Map<string, FiberNodeProperties>;
   sourceFile: string;
 }
+
+// Node types always shown regardless of zoom level
+const MAJOR_NODE_TYPES = new Set<NodeType>(["ixp", "landing-station"]);
 
 // ─── Coordinate helpers ───────────────────────────────────────────────────────
 
@@ -49,7 +56,7 @@ function coordsToCartesian(
   return [(coords as number[][]).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat))];
 }
 
-// ─── Filter predicate ─────────────────────────────────────────────────────────
+// ─── Filter predicates ────────────────────────────────────────────────────────
 
 export function spanMatchesFilter(
   props: FiberSpanProperties,
@@ -88,8 +95,8 @@ export function nodeMatchesFilter(
 
 function addSpan(
   polylines: Cesium.PolylineCollection,
-  spanIndex: Map<string, FiberSpanProperties>,
-  feat: FiberSpanFeature,
+  spanIndex:  Map<string, FiberSpanProperties>,
+  feat:   FiberSpanFeature,
   filter: FilterState,
 ): void {
   const props = feat.properties;
@@ -105,7 +112,7 @@ function addSpan(
     if (positions.length < 2) continue;
 
     const id = `span:${props.span_id}:${Math.random().toString(36).slice(2)}`;
-    const polyline = polylines.add({
+    polylines.add({
       positions,
       width,
       material: isDashed
@@ -113,17 +120,14 @@ function addSpan(
             fabric: {
               type: "PolylineDash",
               uniforms: {
-                color: color,
+                color,
                 gapColor: Cesium.Color.TRANSPARENT,
                 dashLength: props.status === "planned" ? 20.0 : 12.0,
               },
             },
           })
         : new Cesium.Material({
-            fabric: {
-              type: "Color",
-              uniforms: { color },
-            },
+            fabric: { type: "Color", uniforms: { color } },
           }),
       clampToGround: true,
       show: true,
@@ -137,52 +141,57 @@ function addSpan(
 // ─── Node loader ─────────────────────────────────────────────────────────────
 
 function addNode(
-  billboards: Cesium.BillboardCollection,
-  labels: Cesium.LabelCollection,
-  nodeIndex: Map<string, FiberNodeProperties>,
-  feat: FiberNodeFeature,
+  billboards:      Cesium.BillboardCollection,
+  billboardsMinor: Cesium.BillboardCollection,
+  labels:          Cesium.LabelCollection,
+  nodeIndex:       Map<string, FiberNodeProperties>,
+  feat:   FiberNodeFeature,
   filter: FilterState,
 ): void {
   const props = feat.properties;
   if (!nodeMatchesFilter(props, filter)) return;
 
   const [lon, lat] = feat.geometry.coordinates;
-  const position = Cesium.Cartesian3.fromDegrees(lon, lat);
-  const nodeType = props.node_type as NodeType;
-  const color = NODE_COLORS[nodeType] ?? NODE_COLORS["unknown"];
-  const scale = NODE_SCALES[nodeType] ?? 0.6;
-  const id = `node:${props.node_id}`;
+  const position  = Cesium.Cartesian3.fromDegrees(lon, lat);
+  const nodeType  = props.node_type as NodeType;
+  const color     = NODE_COLORS[nodeType] ?? NODE_COLORS["unknown"];
+  const scale     = NODE_SCALES[nodeType] ?? 0.6;
+  const id        = `node:${props.node_id}`;
+  const isMajor   = MAJOR_NODE_TYPES.has(nodeType);
 
-  // Billboard — use a coloured pin as fallback (SVG icons added in Phase 4)
-  billboards.add({
+  const target = isMajor ? billboards : billboardsMinor;
+  target.add({
     position,
     image: buildPinCanvas(color, nodeType),
     scale,
-    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-    disableDepthTestDistance: 1_500_000,
+    verticalOrigin:            Cesium.VerticalOrigin.BOTTOM,
+    heightReference:           Cesium.HeightReference.CLAMP_TO_GROUND,
+    disableDepthTestDistance:  1_500_000,
     show: true,
     id,
   });
 
-  // Label (fades in on zoom)
-  const labelText = props.name_short ?? props.name.slice(0, 24);
-  labels.add({
-    position,
-    text: labelText,
-    font: "11px Inter, sans-serif",
-    fillColor: Cesium.Color.WHITE,
-    outlineColor: Cesium.Color.BLACK,
-    outlineWidth: 2,
-    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-    verticalOrigin: Cesium.VerticalOrigin.TOP,
-    pixelOffset: new Cesium.Cartesian2(0, 10),
-    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-    disableDepthTestDistance: 800_000,
-    translucencyByDistance: new Cesium.NearFarScalar(500_000, 1.0, 3_000_000, 0.0),
-    show: true,
-    id: `label:${props.node_id}`,
-  });
+  // Labels — only for major nodes, fade near/far
+  if (isMajor) {
+    const labelText = props.name_short ?? props.name.slice(0, 24);
+    labels.add({
+      position,
+      text: labelText,
+      font: "11px Inter, sans-serif",
+      fillColor:    Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 2,
+      style:          Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.TOP,
+      pixelOffset:    new Cesium.Cartesian2(0, 10),
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      disableDepthTestDistance: 800_000,
+      // Fade: fully visible at 300 km, invisible at 3000 km
+      translucencyByDistance: new Cesium.NearFarScalar(300_000, 1.0, 3_000_000, 0.0),
+      show: true,
+      id: `label:${props.node_id}`,
+    });
+  }
 
   nodeIndex.set(id, props);
 }
@@ -197,37 +206,35 @@ function buildPinCanvas(color: Cesium.Color, nodeType: NodeType): HTMLCanvasElem
 
   const size = 28;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size + 6; // extra for the pin point
+  canvas.width  = size;
+  canvas.height = size + 6;
   const ctx = canvas.getContext("2d")!;
-
-  const cssColor = color.toCssColorString();
 
   // Circle body
   ctx.beginPath();
   ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
-  ctx.fillStyle = cssColor;
+  ctx.fillStyle = color.toCssColorString();
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.7)";
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Node type symbol
+  // Node type abbreviation
   ctx.fillStyle = "white";
   ctx.font = `bold ${size * 0.42}px monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const symbol: Record<NodeType, string> = {
-    "ixp": "IX",
-    "data-center": "DC",
-    "pop": "P",
+    "ixp":             "IX",
+    "data-center":     "DC",
+    "pop":             "P",
     "landing-station": "LS",
-    "amplifier": "A",
-    "exchange": "EX",
-    "telecom-hotel": "TH",
+    "amplifier":       "A",
+    "exchange":        "EX",
+    "telecom-hotel":   "TH",
     "government-node": "G",
-    "research-node": "R",
-    "unknown": "?",
+    "research-node":   "R",
+    "unknown":         "?",
   };
   ctx.fillText(symbol[nodeType] ?? "?", size / 2, size / 2);
 
@@ -238,47 +245,50 @@ function buildPinCanvas(color: Cesium.Color, nodeType: NodeType): HTMLCanvasElem
 // ─── Main loader ──────────────────────────────────────────────────────────────
 
 export async function loadGeoJSON(
-  scene: Cesium.Scene,
-  url: string,
+  scene:  Cesium.Scene,
+  url:    string,
   filter: FilterState,
 ): Promise<LoadedLayer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
   const fc: GeoJSONFeatureCollection = await response.json();
 
-  const polylines = new Cesium.PolylineCollection();
-  const billboards = new Cesium.BillboardCollection({ scene });
-  const labels = new Cesium.LabelCollection({ scene });
-  const spanIndex = new Map<string, FiberSpanProperties>();
-  const nodeIndex = new Map<string, FiberNodeProperties>();
+  const polylines       = new Cesium.PolylineCollection();
+  const billboards      = new Cesium.BillboardCollection({ scene });
+  const billboardsMinor = new Cesium.BillboardCollection({ scene });
+  const labels          = new Cesium.LabelCollection({ scene });
+  const spanIndex       = new Map<string, FiberSpanProperties>();
+  const nodeIndex       = new Map<string, FiberNodeProperties>();
 
   for (const feat of fc.features) {
     if (feat.properties.ofm_layer === "fiber-spans") {
       addSpan(polylines, spanIndex, feat as FiberSpanFeature, filter);
     } else if (feat.properties.ofm_layer === "fiber-nodes") {
-      addNode(billboards, labels, nodeIndex, feat as FiberNodeFeature, filter);
+      addNode(billboards, billboardsMinor, labels, nodeIndex, feat as FiberNodeFeature, filter);
     }
   }
 
   scene.primitives.add(polylines);
   scene.primitives.add(billboards);
+  scene.primitives.add(billboardsMinor);
   scene.primitives.add(labels);
 
-  return { polylines, billboards, labels, spanIndex, nodeIndex, sourceFile: url };
+  return { polylines, billboards, billboardsMinor, labels, spanIndex, nodeIndex, sourceFile: url };
 }
 
 export function removeLayer(scene: Cesium.Scene, layer: LoadedLayer): void {
   scene.primitives.remove(layer.polylines);
   scene.primitives.remove(layer.billboards);
+  scene.primitives.remove(layer.billboardsMinor);
   scene.primitives.remove(layer.labels);
 }
 
 // ─── Pick handler ─────────────────────────────────────────────────────────────
 
 export function pickFeature(
-  scene: Cesium.Scene,
+  scene:    Cesium.Scene,
   position: Cesium.Cartesian2,
-  layers: LoadedLayer[],
+  layers:   LoadedLayer[],
 ): { type: "span" | "node"; properties: FiberSpanProperties | FiberNodeProperties } | null {
   const picked = scene.pick(position);
   if (!picked) return null;
