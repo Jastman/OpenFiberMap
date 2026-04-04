@@ -49,13 +49,14 @@ interface Props {
   showSpans: boolean;
   showNodes: boolean;
   onFeatureSelect: (feature: SelectedFeature | null) => void;
+  onFeatureHover?: (feature: SelectedFeature | null, x: number, y: number) => void;
   cesiumIonToken?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer(
-  { filters, showSpans, showNodes, onFeatureSelect, cesiumIonToken },
+  { filters, showSpans, showNodes, onFeatureSelect, onFeatureHover, cesiumIonToken },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -195,8 +196,9 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
 
     viewerRef.current = viewer;
 
-    // ── Click pick handler ───────────────────────────────────────────────
+    // ── Click + hover pick handlers ──────────────────────────────────────
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
     handler.setInputAction(
       (movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
         const feature = pickFeature(viewer.scene, movement.position, layersRef.current);
@@ -204,6 +206,24 @@ const CesiumViewer = forwardRef<CesiumViewerHandle, Props>(function CesiumViewer
       },
       Cesium.ScreenSpaceEventType.LEFT_CLICK
     );
+
+    // Hover: throttled via rAF to avoid redundant picks mid-frame
+    let hoverRaf = 0;
+    handler.setInputAction(
+      (movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
+        if (!onFeatureHover) return;
+        cancelAnimationFrame(hoverRaf);
+        const pos = movement.endPosition;
+        hoverRaf = requestAnimationFrame(() => {
+          const feature = pickFeature(viewer.scene, pos, layersRef.current);
+          // Convert Cesium canvas coords to page coords
+          const rect = (viewer.scene.canvas as HTMLCanvasElement).getBoundingClientRect();
+          onFeatureHover(feature, rect.left + pos.x, rect.top + pos.y);
+        });
+      },
+      Cesium.ScreenSpaceEventType.MOUSE_MOVE
+    );
+
     handlerRef.current = handler;
 
     // ── Camera altitude → minor node visibility ──────────────────────────

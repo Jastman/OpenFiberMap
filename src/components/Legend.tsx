@@ -86,12 +86,12 @@ export default function Legend() {
             </p>
             <div className="space-y-1.5">
               {[
-                { label: "IXP",             color: "#00E6FF", text: "IX" },
-                { label: "Data Center",     color: "#A855F7", text: "DC" },
-                { label: "Landing Station", color: "#F59E0B", text: "LS" },
-                { label: "PoP",             color: "#6366F1", text: "P"  },
-              ].map(({ label, color, text }) => (
-                <div key={label} className="flex items-center gap-2">
+                { label: "IXP",             color: "#00E6FF", text: "IX", tip: "Internet Exchange Point — neutral facility where networks interconnect and exchange traffic." },
+                { label: "Data Center",     color: "#A855F7", text: "DC", tip: "Colocation facility housing servers, routers, and cross-connects for multiple operators." },
+                { label: "Landing Station", color: "#F59E0B", text: "LS", tip: "Coastal facility where a submarine cable comes ashore and connects to the terrestrial network." },
+                { label: "PoP",             color: "#6366F1", text: "P",  tip: "Point of Presence — local access node where an operator's network reaches a city or region." },
+              ].map(({ label, color, text, tip }) => (
+                <div key={label} className="group relative flex items-center gap-2 cursor-default">
                   <span
                     className="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 text-white font-bold"
                     style={{ background: color, fontSize: "8px" }}
@@ -99,6 +99,13 @@ export default function Legend() {
                     {text}
                   </span>
                   <span className="text-xs text-slate-300">{label}</span>
+                  {/* Tooltip */}
+                  <div className="pointer-events-none absolute left-0 bottom-full mb-2 z-50
+                                  w-52 px-2.5 py-2 rounded-lg text-xs text-slate-200 leading-snug
+                                  bg-[rgba(13,17,28,0.98)] border border-white/15 shadow-xl
+                                  opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {tip}
+                  </div>
                 </div>
               ))}
             </div>

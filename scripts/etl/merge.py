@@ -59,6 +59,9 @@ INCLUDE_PATTERNS = [
     "nodes-ofds-americas.geojson",
     "spans-ofds-other.geojson",
     "nodes-ofds-other.geojson",
+    # Global backbone seeds (NA, Europe, Asia-Pacific, Middle East)
+    "spans-global-backbone.geojson",
+    "nodes-global-backbone.geojson",
     # Node registries
     "nodes-peeringdb.geojson",
     "nodes-landing-stations.geojson",
@@ -70,8 +73,12 @@ INCLUDE_PATTERNS = [
     "nodes-osm-global.geojson",
 ]
 
-# Do NOT include the output files themselves
-EXCLUDE_PREFIXES = ["fiber-", "spans-global", "nodes-global", "metadata"]
+# Do NOT include the merged output files themselves (exact names, not prefixes)
+EXCLUDE_NAMES = {
+    "fiber-global.geojson", "spans-global.geojson", "nodes-global.geojson",
+    "fiber-africa.geojson", "fiber-americas.geojson", "fiber-europe.geojson",
+    "metadata.json",
+}
 
 # Dedup tolerance for nodes (~200 m in degrees)
 NODE_DEDUP_TOLERANCE = 0.002
@@ -226,7 +233,7 @@ def merge(no_dedup: bool = False, stats: bool = False) -> dict:
         path = PUBLIC_DATA / pattern
         if not path.exists():
             continue
-        if any(path.name.startswith(excl) for excl in EXCLUDE_PREFIXES):
+        if path.name in EXCLUDE_NAMES:
             continue
         try:
             fc = load_geojson(path)
@@ -240,7 +247,7 @@ def merge(no_dedup: bool = False, stats: bool = False) -> dict:
     for path in sorted(PUBLIC_DATA.glob("*.geojson")):
         if path.name in INCLUDE_PATTERNS:
             continue
-        if any(path.name.startswith(excl) for excl in EXCLUDE_PREFIXES):
+        if path.name in EXCLUDE_NAMES:
             continue
         if path.name.startswith(("spans-", "nodes-")):
             try:

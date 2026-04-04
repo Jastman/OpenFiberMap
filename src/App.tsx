@@ -18,6 +18,7 @@ import InfoPanel      from "@/components/InfoPanel";
 import Toolbar        from "@/components/Toolbar";
 import SearchBar      from "@/components/SearchBar";
 import Legend         from "@/components/Legend";
+import HoverTooltip   from "@/components/HoverTooltip";
 import AboutModal     from "@/components/AboutModal";
 import WelcomeSplash  from "@/components/WelcomeSplash";
 import ShareButton    from "@/components/ShareButton";
@@ -57,6 +58,9 @@ export default function App() {
   // Show splash on first visit; suppress if user arrived via a share link
   const [showSplash, setShowSplash] = useState(() => !window.location.hash.includes("r="));
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
+  // Hover tooltip (desktop only)
+  const [hoverFeature, setHoverFeature] = useState<SelectedFeature | null>(null);
+  const [hoverPos,     setHoverPos]     = useState<{x: number; y: number} | null>(null);
 
   // ── Timeline ──────────────────────────────────────────────────────────────
   const [timelineValue, setTimelineValue] = useState<YearRange>(TIMELINE_RANGE);
@@ -106,9 +110,17 @@ export default function App() {
 
   const handleFeatureSelect = useCallback((f: SelectedFeature | null) => {
     setSelectedFeature(f);
+    // Clear hover when clicking
+    setHoverFeature(null);
+    setHoverPos(null);
   }, []);
 
   const handleCloseInfo = useCallback(() => setSelectedFeature(null), []);
+
+  const handleFeatureHover = useCallback((f: SelectedFeature | null, x: number, y: number) => {
+    setHoverFeature(f);
+    setHoverPos(f ? { x, y } : null);
+  }, []);
 
   // Close info panel when clicking backdrop on mobile
   const handleGlobeClick = useCallback(() => {
@@ -128,6 +140,7 @@ export default function App() {
           showSpans={showSpans}
           showNodes={showNodes}
           onFeatureSelect={handleFeatureSelect}
+          onFeatureHover={isMobile ? undefined : handleFeatureHover}
           cesiumIonToken={CESIUM_TOKEN}
         />
       </div>
@@ -160,6 +173,11 @@ export default function App() {
           <ShareButton onCopy={copyShareLink} />
         </div>
       </div>
+
+      {/* Hover tooltip — desktop only, follows cursor */}
+      {!isMobile && hoverFeature && hoverPos && !selectedFeature && (
+        <HoverTooltip feature={hoverFeature} screenX={hoverPos.x} screenY={hoverPos.y} />
+      )}
 
       {/* Info panel — right side */}
       {selectedFeature && (

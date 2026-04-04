@@ -1,40 +1,49 @@
 {
-  "generated": "2026-04-02",
-  "total_features": 67,
+  "generated": "2026-04-04",
+  "total_features": 115,
   "spans": {
-    "count": 31,
-    "total_km_approx": 32470.5,
+    "count": 55,
+    "total_km_approx": 294570.5,
     "by_status": {
-      "deployed": 31
+      "deployed": 55
     },
     "by_capacity_class": {
-      "high": 17,
-      "medium": 14
+      "high": 33,
+      "medium": 16,
+      "ultra-high": 6
     },
     "by_source": {
       "AfTerFibre": 12,
-      "RNP": 19
+      "RNP": 19,
+      "OpenFiberMap-Seeds": 24
     },
     "by_region": {
       "africa": 12,
-      "americas": 19
+      "americas": 24,
+      "europe": 10,
+      "asia-pacific": 7,
+      "middle-east": 2
     }
   },
   "nodes": {
-    "count": 36,
+    "count": 60,
     "by_type": {
-      "ixp": 12,
+      "ixp": 36,
       "landing-station": 8,
       "data-center": 3,
       "pop": 13
     },
     "by_region": {
       "africa": 17,
-      "americas": 19
+      "americas": 24,
+      "europe": 10,
+      "asia-pacific": 8,
+      "middle-east": 1
     },
     "by_source": {
       "AfTerFibre": 17,
-      "RNP": 19
+      "RNP": 19,
+      "OpenFiberMap-Seeds": 24
     }
   }
 }

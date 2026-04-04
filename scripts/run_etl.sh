@@ -70,56 +70,65 @@ echo ""
 
 # --- Step 1: PeeringDB (nodes — fast CC0 API) ---
 if should_run "peeringdb"; then
-  log "1/6  PeeringDB — global IXP + data center nodes"
+  log "1/7  PeeringDB — global IXP + data center nodes"
   python scripts/etl/fetch_peeringdb.py $REFRESH \
     || warn "PeeringDB fetcher failed (non-fatal, will use cached/empty)"
 else
-  log "1/6  PeeringDB [SKIPPED]"
+  log "1/7  PeeringDB [SKIPPED]"
 fi
 
 # --- Step 2: OFDS datasets (spans + nodes) ---
 if should_run "ofds"; then
-  log "2/6  OFDS-datasets — Africa + Americas fiber spans"
+  log "2/7  OFDS-datasets — Africa + Americas fiber spans"
   python scripts/etl/fetch_ofds_datasets.py $REFRESH \
     || warn "OFDS-datasets fetcher failed (non-fatal)"
 else
-  log "2/6  OFDS-datasets [SKIPPED]"
+  log "2/7  OFDS-datasets [SKIPPED]"
 fi
 
 # --- Step 3: Submarine Cable Map (landing station nodes) ---
 if should_run "submarine"; then
-  log "3/6  Submarine Cable Map — global landing stations"
+  log "3/7  Submarine Cable Map — global landing stations"
   python scripts/etl/fetch_submarine_cables.py $REFRESH \
     || warn "Submarine Cable Map fetcher failed (non-fatal)"
 else
-  log "3/6  Submarine Cable Map [SKIPPED]"
+  log "3/7  Submarine Cable Map [SKIPPED]"
 fi
 
 # --- Step 4: AfTerFibre (Africa backbone) ---
 if should_run "afterfibre"; then
-  log "4/6  AfTerFibre — Africa backbone spans + nodes"
+  log "4/7  AfTerFibre — Africa backbone spans + nodes"
   python scripts/etl/fetch_afterfibre.py $OFFLINE $REFRESH \
     || warn "AfTerFibre fetcher failed (non-fatal, seed data available)"
 else
-  log "4/6  AfTerFibre [SKIPPED]"
+  log "4/7  AfTerFibre [SKIPPED]"
 fi
 
 # --- Step 5: Brazil RNP (South America) ---
 if should_run "brazil"; then
-  log "5/6  Brazil RNP — South America fiber backbone"
+  log "5/7  Brazil RNP — South America fiber backbone"
   python scripts/etl/fetch_brazil_rnp.py $OFFLINE $REFRESH \
     || warn "Brazil RNP fetcher failed (non-fatal, seed data available)"
 else
-  log "5/6  Brazil RNP [SKIPPED]"
+  log "5/7  Brazil RNP [SKIPPED]"
 fi
 
-# --- Step 6: OSM Overpass (gap-fill — slowest, can be skipped) ---
+# --- Step 6: Global backbone seeds (NA, Europe, Asia-Pacific, ME) ---
+if should_run "backbone"; then
+  log "6/7  Global Backbone — NA, Europe, Asia-Pacific, Middle East seeds"
+  python scripts/etl/fetch_global_backbone.py $REFRESH \
+    || warn "Global backbone fetcher failed (non-fatal)"
+else
+  log "6/7  Global Backbone [SKIPPED]"
+fi
+
+# --- Step 7: OSM Overpass (gap-fill — slowest, can be skipped) ---
 if should_run "osm" && [[ -z "$OFFLINE" ]]; then
-  log "6/6  OSM Overpass — global fiber gap-fill (this may take several minutes)"
+  log "7/7  OSM Overpass — global fiber gap-fill (this may take several minutes)"
   python scripts/etl/fetch_osm.py $REFRESH \
     || warn "OSM fetcher failed (non-fatal, Overpass can be slow)"
 else
-  log "6/6  OSM Overpass [SKIPPED${OFFLINE:+ — offline mode}]"
+  log "7/7  OSM Overpass [SKIPPED${OFFLINE:+ — offline mode}]"
 fi
 
 echo ""
