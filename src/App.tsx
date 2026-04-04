@@ -19,6 +19,7 @@ import Toolbar        from "@/components/Toolbar";
 import SearchBar      from "@/components/SearchBar";
 import Legend         from "@/components/Legend";
 import AboutModal     from "@/components/AboutModal";
+import WelcomeSplash  from "@/components/WelcomeSplash";
 import ShareButton    from "@/components/ShareButton";
 import TimelineSlider, { type YearRange } from "@/components/TimelineSlider";
 import { useFilters }   from "@/hooks/useFilters";
@@ -53,6 +54,8 @@ export default function App() {
 
   // ── Modal / overlay state ─────────────────────────────────────────────────
   const [showAbout,    setShowAbout]    = useState(false);
+  // Show splash on first visit; suppress if user arrived via a share link
+  const [showSplash, setShowSplash] = useState(() => !window.location.hash.includes("r="));
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
 
   // ── Timeline ──────────────────────────────────────────────────────────────
@@ -185,6 +188,11 @@ export default function App() {
       {/* About modal */}
       {showAbout && (
         <AboutModal onClose={() => setShowAbout(false)} />
+      )}
+
+      {/* Welcome splash — shown on first visit */}
+      {showSplash && (
+        <WelcomeSplash onClose={() => setShowSplash(false)} />
       )}
 
       {/* Loading banner */}
